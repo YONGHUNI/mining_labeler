@@ -1,0 +1,13 @@
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+
+# Generated labeling outputs
+labeling_output/*.csv
+labeling_output/gpkg/
+labeling_output/imported/
+labeling_output/keybindings.json
+
+# GeoPackage side files / generated GIS artifacts
+labeling_output/**/*.gpkg
+labeling_output/**/*.gpkg-*
