@@ -7,11 +7,23 @@ dependencies:
   - python=3.11
   - pip
   - gdal
+  # Avoid conda ICU DLLs shadowing Windows ICU for PyPI PyQt6 on Windows.
+  - libarchive=3.8.7=gpl_he24518a_101
+  - libcurl=8.20.0=h8206538_0
+  - libsqlite=3.53.2=hf5d6505_0
+  - libxml2=2.15.3=hbc0d294_0
+  - libxml2-16=2.15.3=h692994f_0
+  - libxml2-devel=2.15.3=hbc0d294_0
+  - minizip=4.2.1=h0ffbb96_0
   - pandas
   - openpyxl
   - folium
   - branca
   - jinja2
   - pip:
-      - PyQt6
-      - PyQt6-WebEngine
+      # Keep the PyQt6 wheel family pinned together on Windows.
+      - PyQt6==6.11.0
+      - PyQt6-Qt6==6.11.1
+      - PyQt6-sip==13.11.1
+      - PyQt6-WebEngine==6.11.0
+      - PyQt6-WebEngine-Qt6==6.11.1
