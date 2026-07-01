@@ -21,24 +21,24 @@ sampled_other_nations/
 Create the conda environment from `environment.yml`.
 
 ```powershell
-cd E:\workspace\sampled_other_nations
+cd F:\workspace\labeling_day\trial2
 micromamba env create -f environment.yml
-micromamba activate nk-gis
+micromamba activate minelabeler
 ```
 
-If the `nk-gis` environment already exists, update it instead.
+If the `minelabeler` environment already exists, update it instead.
 
 ```powershell
-cd E:\workspace\sampled_other_nations
-micromamba env update -n nk-gis -f environment.yml --prune
-micromamba activate nk-gis
+cd F:\workspace\labeling_day\trial2
+micromamba env update -n minelabeler -f environment.yml --prune
+micromamba activate minelabeler
 ```
 
 If you use `mamba` instead of `micromamba`, the same commands work with `mamba`.
 
 ```powershell
 mamba env create -f environment.yml
-mamba activate nk-gis
+mamba activate minelabeler
 ```
 
 ## Data Setup
@@ -63,8 +63,8 @@ The local file is recommended because the website may reject automated downloads
 ## Run
 
 ```powershell
-cd E:\workspace\sampled_other_nations
-micromamba activate nk-gis
+cd F:\workspace\labeling_day\trial2
+micromamba activate minelabeler
 python .\main.py
 ```
 
