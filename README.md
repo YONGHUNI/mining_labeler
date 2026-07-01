@@ -5,12 +5,14 @@ MineGrid Labeler is a PyQt-based desktop labeling tool for reviewing 3x3 spatial
 ## Project Layout
 
 ```text
-sampled_other_nations/
+<project-root>/
   main.py
   environment.yml
   data/
     global-mining-dataset.xlsx
     # or global-mining-dataset.csv
+    nature_mine_poly_nearest.gpkg
+    figs/
   labeling_output/
 ```
 
@@ -18,10 +20,10 @@ sampled_other_nations/
 
 ## Install
 
-Create the conda environment from `environment.yml`.
+Use `mamba` or `micromamba` from a conda-forge based distribution such as Miniforge. The same `environment.yml` is intended for Windows, macOS, and Linux. It pins package versions where needed, but does not pin conda build strings, so the solver can choose OS-appropriate builds.
 
 ```powershell
-cd F:\workspace\labeling_day\trial2
+cd <project-root>
 micromamba env create -f environment.yml
 micromamba activate minelabeler
 ```
@@ -29,7 +31,7 @@ micromamba activate minelabeler
 If the `minelabeler` environment already exists, update it instead.
 
 ```powershell
-cd F:\workspace\labeling_day\trial2
+cd <project-root>
 micromamba env update -n minelabeler -f environment.yml --prune
 micromamba activate minelabeler
 ```
@@ -39,6 +41,32 @@ If you use `mamba` instead of `micromamba`, the same commands work with `mamba`.
 ```powershell
 mamba env create -f environment.yml
 mamba activate minelabeler
+```
+
+### System Packages
+
+On macOS, no separate system packages are usually required when running from a normal desktop session.
+
+On Linux desktop installs, the required Qt libraries are often already present. Minimal installs, Docker, WSL, and remote/headless systems may need additional GUI/WebEngine libraries. On Ubuntu/Debian, install these if Qt reports missing `xcb`, OpenGL, NSS, GBM, or DBus libraries:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+  libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+  libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xfixes0 \
+  libdbus-1-3 libnss3 libxcomposite1 libxdamage1 libxrandr2 \
+  libgbm1 fonts-dejavu-core
+```
+
+If audio-related WebEngine errors appear on Ubuntu/Debian, also install the distribution's ALSA runtime package, usually `libasound2` or `libasound2t64`.
+
+### Verify Imports
+
+After activation, verify the main GUI and GIS dependencies before running the app.
+
+```bash
+python -c "from PyQt6.QtWidgets import QApplication; from PyQt6.QtWebEngineWidgets import QWebEngineView; from osgeo import gdal; print('ok')"
 ```
 
 ## Data Setup
@@ -60,10 +88,23 @@ https://www.icmm.com/website/data/2025/global-mining-dataset.xlsx
 
 The local file is recommended because the website may reject automated downloads.
 
+Optional local files:
+
+```text
+data/nature_mine_poly_nearest.gpkg
+data/shp/nature_mine_poly_nearest.gpkg
+data/figs/<component-name>/*.png
+data/figs/<component-name>/*.jpg
+```
+
+`nature_mine_poly_nearest.gpkg` enables the Nature mine polygon overlay. `data/figs/` supplies reference images for the component guide.
+
+Scene folders are discovered when they contain a `.tif` or `.tiff`, or when the folder name matches IDs such as `USA_C_4`, `CHN_I_9`, or `AUS_G_25` and contains georeferenced `.jpg` tiles. JPG tiles need matching `.jgw` world files for spatial binning.
+
 ## Run
 
 ```powershell
-cd F:\workspace\labeling_day\trial2
+cd <project-root>
 micromamba activate minelabeler
 python .\main.py
 ```
@@ -100,13 +141,15 @@ Enter             Complete current bin and move to next bin
 Shift+Enter       Move to previous bin
 Ctrl+Z            Undo component change
 Ctrl+Shift+Z      Redo component change
-Left Arrow        Previous grid
-Right Arrow       Next grid
+Left Arrow        Previous component, or previous bin from the first component
+Right Arrow       Next component, or next bin from the final component
 Tab               Focus first component control
 Shift+Tab         Move focus backward
 ```
 
 When the current component is the final category, pressing `J` completes the component scan for that bin.
+
+The optional quality flag marks bins with broken imagery, missing tiles, or imagery that cannot be confidently interpreted. It is stored separately from the component booleans as `quality_flag`.
 
 ## Output Files
 
@@ -116,12 +159,70 @@ Annotation outputs are written under:
 labeling_output/
 ```
 
-The main CSV stores one row per evaluated matrix bin. GeoPackage outputs are also written for scene/grid spatial data.
+Important generated files:
 
-Important timing fields:
+```text
+labeling_output/nk_mining_taxonomy.csv
+labeling_output/keybindings.json
+labeling_output/gpkg/<SCENE_ID>_matrix.gpkg
+labeling_output/imported/
+labeling_output/nk_mining_taxonomy.backup_<timestamp>.csv
+```
 
-- `eval_start`: first meaningful interaction with a bin
-- `eval_end`: explicit completion time for the bin
+The main CSV stores one row per evaluated matrix bin. GeoPackage outputs are written per scene under `labeling_output/gpkg/`. External CSVs merged through the app are archived under `labeling_output/imported/`, and merge backups use the `nk_mining_taxonomy.backup_<timestamp>.csv` pattern.
+
+### Main CSV Schema
+
+`labeling_output/nk_mining_taxonomy.csv` is the main annotation table. It stores one row per evaluated matrix bin.
+
+Important identity and scene fields:
+
+- `annotation_key`: stable unique key for a scene/bin pair
+- `scene_uid`: normalized scene identifier such as `USA-C-4`
+- `scene_name`: source scene folder name
+- `scene_tif_path`: scene path stored relative to `main.py` when possible
+- `identifier`: output-safe scene identifier such as `USA_C_4`
+- `grid_index`: matrix bin index
+
+Spatial and source-image fields:
+
+- `mining_category`: inferred target category such as `Coal`, `Gold`, or `Iron`
+- `mine_point_count`: number of matching mine points associated with the bin
+- `top_left_jpg`: top-left JPG tile used by the bin
+- `bottom_right_jpg`: bottom-right JPG tile used by the bin
+
+Annotation fields:
+
+- `spoil_heap`
+- `processing_building`
+- `related_building`
+- `tailings_pond`
+- `rectangular_pond`
+- `open_pit`
+- `quality_flag`
+
+Component and quality fields are stored as `0` or `1`. `quality_flag` is separate from the component labels and marks bins with broken imagery, missing tiles, or imagery that cannot be confidently interpreted.
+
+Timing fields:
+
+- `eval_start`: first meaningful interaction timestamp
+- `eval_end`: explicit completion timestamp
+
+### GeoPackage Schema
+
+GeoPackage outputs are written under:
+
+```text
+labeling_output/gpkg/<SCENE_ID>_matrix.gpkg
+```
+
+Each GeoPackage contains a `matrix_bins` polygon layer. It mirrors the key CSV fields and stores each matrix bin as spatial geometry, so labels can be inspected in GIS software.
+
+### Other Output Files
+
+- `labeling_output/keybindings.json`: custom keyboard shortcuts saved from the Keybindings dialog
+- `labeling_output/imported/`: external CSV files moved here after a successful merge
+- `labeling_output/nk_mining_taxonomy.backup_<timestamp>.csv`: automatic backup created before imported CSVs are merged
 
 The app uses `eval_end` to determine whether a matrix bin should be shown as completed.
 
@@ -129,10 +230,30 @@ The app uses `eval_end` to determine whether a matrix bin should be shown as com
 
 The app includes purge controls for removing generated CSV and GeoPackage outputs. Use these carefully:
 
-- **Purge Scene Root** removes outputs for the current scene root.
+- **Purge Scene Labels** removes outputs for the current scene.
 - **Full Purge** removes all generated labeling outputs.
 
 A confirmation dialog is shown before deletion.
+
+## Troubleshooting
+
+### Windows PyQt6 DLL Error
+
+If Windows raises this error when importing `PyQt6.QtWidgets`:
+
+```text
+ImportError: DLL load failed while importing QtWidgets: The specified procedure could not be found.
+```
+
+make sure `environment.yml` does not include platform-specific conda build strings such as `hbc0d294_0` or `h8206538_0`, then recreate or update the environment from `environment.yml`. Those build strings are OS-specific and can cause solve failures on macOS/Linux; on Windows, they can also make Qt/PyQt DLL behavior harder to reproduce across machines.
+
+### Linux Qt Platform Plugin Error
+
+If Linux reports that the Qt platform plugin `xcb` could not be loaded, install the Linux system packages listed in the install section, reactivate the environment, and run the import verification command again.
+
+### Headless or Remote Linux
+
+This is a desktop GUI app. On headless Linux, run it inside a real desktop session, an X11/Wayland-forwarded session, or a virtual display such as `xvfb`.
 
 ## Notes
 
