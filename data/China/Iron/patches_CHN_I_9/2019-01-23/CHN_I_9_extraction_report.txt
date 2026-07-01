@@ -1,0 +1,22 @@
+==================================================
+Task Execution Time : 2026-05-23 07:06:36
+Task Identifier     : CHN_I_9_current_0
+Requested Target    : current
+Actual Capture Date : 2019-01-23
+Zoom Level          : 18
+Bounding Box (4326) : (np.float64(114.82978799999994), np.float64(30.19039296475628), np.float64(114.91791500000001), np.float64(30.236971988273233))
+Total Patches Found : 10
+--------------------------------------------------
+[Original Log Entries]
+T18 ges_107345_76527_18.jpg: 2019-01-23 Ok
+T19 ges_107345_76528_18.jpg: 2019-01-23 Ok
+T20 ges_107345_76529_18.jpg: 2019-01-23 Ok
+T21 ges_107345_76530_18.jpg: 2019-01-23 Ok
+T22 ges_107345_76531_18.jpg: 2019-01-23 Ok
+T0 ges_107344_76527_18.jpg: 2019-01-23 Ok
+T1 ges_107344_76528_18.jpg: 2019-01-23 Ok
+T2 ges_107344_76529_18.jpg: 2019-01-23 Ok
+T4 ges_107344_76531_18.jpg: 2019-01-23 Ok
+T3 ges_107344_76530_18.jpg: 2019-01-23 Ok
+
+

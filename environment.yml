@@ -1,0 +1,17 @@
+# environment.yml
+name: minelabeler
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - pip
+  - gdal
+  - pandas
+  - openpyxl
+  - folium
+  - branca
+  - jinja2
+  - pip:
+      - PyQt6
+      - PyQt6-WebEngine

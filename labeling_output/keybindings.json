@@ -1,0 +1,9 @@
+{
+  "toggle_component": "A",
+  "next_component": "J",
+  "previous_component": "K",
+  "complete_next_bin": "Return",
+  "previous_bin": "Shift+Return",
+  "undo": "Ctrl+Z",
+  "redo": "Ctrl+Shift+Z"
+}

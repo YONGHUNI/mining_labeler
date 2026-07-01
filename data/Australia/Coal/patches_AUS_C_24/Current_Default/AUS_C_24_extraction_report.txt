@@ -1,0 +1,52 @@
+==================================================
+Task Execution Time : 2026-05-22 15:17:42
+Task Identifier     : AUS_C_24_current_0
+Requested Target    : current
+Actual Capture Date : Current_Default
+Zoom Level          : 18
+Bounding Box (4326) : (np.float64(148.22706399999979), np.float64(-22.101406957569086), np.float64(148.2890149999999), np.float64(-21.98965595754126))
+Total Patches Found : 40
+--------------------------------------------------
+[Original Log Entries]
+T187 ges_119507_57512_18.jpg:  Ok
+T269 ges_119509_57512_18.jpg:  Ok
+T679 ges_119519_57512_18.jpg:  Ok
+T762 ges_119521_57513_18.jpg:  Ok
+T803 ges_119522_57513_18.jpg:  Ok
+T844 ges_119523_57513_18.jpg:  Ok
+T228 ges_119508_57512_18.jpg:  Ok
+T869 ges_119524_57497_18.jpg:  Ok
+T870 ges_119524_57498_18.jpg:  Ok
+T871 ges_119524_57499_18.jpg:  Ok
+T872 ges_119524_57500_18.jpg:  Ok
+T873 ges_119524_57501_18.jpg:  Ok
+T874 ges_119524_57502_18.jpg:  Ok
+T875 ges_119524_57503_18.jpg:  Ok
+T876 ges_119524_57504_18.jpg:  Ok
+T877 ges_119524_57505_18.jpg:  Ok
+T878 ges_119524_57506_18.jpg:  Ok
+T879 ges_119524_57507_18.jpg:  Ok
+T880 ges_119524_57508_18.jpg:  Ok
+T881 ges_119524_57509_18.jpg:  Ok
+T882 ges_119524_57510_18.jpg:  Ok
+T883 ges_119524_57511_18.jpg:  Ok
+T884 ges_119524_57512_18.jpg:  Ok
+T885 ges_119524_57513_18.jpg:  Ok
+T886 ges_119524_57514_18.jpg:  Ok
+T888 ges_119524_57516_18.jpg:  Ok
+T887 ges_119524_57515_18.jpg:  Ok
+T889 ges_119524_57517_18.jpg:  Ok
+T890 ges_119524_57518_18.jpg:  Ok
+T891 ges_119524_57519_18.jpg:  Ok
+T892 ges_119524_57520_18.jpg:  Ok
+T893 ges_119524_57521_18.jpg:  Ok
+T894 ges_119524_57522_18.jpg:  Ok
+T895 ges_119524_57523_18.jpg:  Ok
+T896 ges_119524_57524_18.jpg:  Ok
+T897 ges_119524_57525_18.jpg:  Ok
+T898 ges_119524_57526_18.jpg:  Ok
+T899 ges_119524_57527_18.jpg:  Ok
+T900 ges_119524_57528_18.jpg:  Ok
+T901 ges_119524_57529_18.jpg:  Ok
+
+
