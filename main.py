@@ -199,10 +199,10 @@ gdal.UseExceptions()
 
 TAXONOMY_DEFINITIONS = {
     "spoil_heap": {
-        "label": "Spoil Heap",
+        "label": "Waste Heap",
         "fig_dir": "Spoil",
-        "desc_en": "Bare mound of waste rock, which may feature less steep step terraces; grey, yellowish, reddish-brown, or black",
-        "desc_ko": "폐석 더미가 드러난 지형. 완만한 계단식 테라스가 보일 수 있으며, 회색, 황색, 적갈색 또는 검은색 계열로 나타날 수 있음.",
+        "desc_en": "Extensive accumulation of bare waste rock typically associated with open-pit mining. Common traits include terraced design, flat-topped structure, disorganized pile patterns, and small adjacent piles.",
+        "desc_ko": "노천 채굴지 주변에 쌓인 폐석 더미. 계단식 지형, 평평한 상단, 불규칙한 더미 패턴, 인접한 작은 더미가 단서가 될 수 있음.",
     },
     "processing_building": {
         "label": "Processing Building",
@@ -213,8 +213,8 @@ TAXONOMY_DEFINITIONS = {
     "related_building": {
         "label": "Related Building",
         "fig_dir": "Related_Building",
-        "desc_en": "Administrative or support structure within the mine operational perimeter",
-        "desc_ko": "광산 운영 경계 안에 있는 행정 또는 지원 목적의 구조물.",
+        "desc_en": "Administrative or support structure within the mine operational perimeter. Exclude residential buildings and power plants.",
+        "desc_ko": "광산 운영 경계 안에 있는 행정 또는 지원 목적의 구조물. 주거 건물과 발전소는 제외.",
     },
     "tailings_pond": {
         "label": "Tailings Pond",
@@ -223,16 +223,16 @@ TAXONOMY_DEFINITIONS = {
         "desc_ko": "처리 시설 인근에 위치한 변색된 저류지 또는 침전지.",
     },
     "rectangular_pond": {
-        "label": "Rectangular Pond",
+        "label": "Artificial Pond",
         "fig_dir": "Rectangular_Pond",
-        "desc_en": "Small rectangular water body with sharp engineered edges, located adjacent to a processing building; displays a murky, unclean color to differentiate from reservoirs",
-        "desc_ko": "처리 건물 인근에 있는 날카로운 인공 경계의 작은 직사각형 수체. 저수지와 구분되는 탁하고 깨끗하지 않은 색을 보임.",
+        "desc_en": "Small engineered industrial water body near a processing building, often with sharp boundaries and murky or contaminated-looking water. It is not always perfectly rectangular; exclude ponds that appear unrelated to mining, such as distant irrigation, livestock, or decorative ponds.",
+        "desc_ko": "처리 건물 인근의 작은 인공 산업용 수체. 날카로운 경계와 탁하거나 오염된 듯한 물색이 단서가 되며, 항상 완벽한 직사각형일 필요는 없음. 광산 시설과 멀리 떨어진 관개, 가축, 조경 목적의 연못은 제외.",
     },
     "open_pit": {
         "label": "Open Pit",
         "fig_dir": "Open_Pit",
-        "desc_en": "Exposed excavation face, sometimes with step-terrace geometry; often flooded if non-operational or abandoned",
-        "desc_ko": "노출된 채굴면. 경우에 따라 계단식 테라스 형태가 보이며, 비운영 또는 폐광 상태에서는 물이 차 있는 경우가 많음.",
+        "desc_en": "Exposed excavation face, sometimes with distinct step-terrace geometry. Exclude pits that are completely or mostly filled with water.",
+        "desc_ko": "노출된 채굴면. 뚜렷한 계단식 테라스 형태가 단서가 될 수 있음. 완전히 또는 대부분 물로 차 있는 pit은 제외.",
     },
 }
 

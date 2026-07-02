@@ -9,34 +9,33 @@ MineGrid Labeler is a PyQt-based desktop labeling tool for reviewing 3x3 spatial
   main.py
   environment.yml
   data/
-    global-mining-dataset.xlsx
-    # or global-mining-dataset.csv
+    global-mining-dataset.csv
     nature_mine_poly_nearest.gpkg
     figs/
   labeling_output/
 ```
 
-`labeling_output/` is created next to `main.py` and stores annotation outputs. The ICMM reference dataset is loaded from `data/` first; if no local file exists, the app tries the ICMM-hosted workbook as a fallback.
+`labeling_output/` is created next to `main.py` and stores annotation outputs. *The International Council on Mining and Metals* (ICMM) reference dataset is loaded from `data/` first; if no local file exists, the app tries the ICMM-hosted workbook as a fallback.
 
 ## Install
 
-Use `mamba` or `micromamba` from a conda-forge based distribution such as Miniforge. The same `environment.yml` is intended for Windows, macOS, and Linux. It pins package versions where needed, but does not pin conda build strings, so the solver can choose OS-appropriate builds.
+Use `conda` or `mamba` from a conda-forge based distribution such as Miniforge. The same `environment.yml` is intended for Windows, macOS, and Linux. It pins package versions where needed, but does not pin conda build strings, so the solver can choose OS-appropriate builds.
 
 ```powershell
 cd <project-root>
-micromamba env create -f environment.yml
-micromamba activate minelabeler
+conda env create -f environment.yml
+conda activate minelabeler
 ```
 
 If the `minelabeler` environment already exists, update it instead.
 
 ```powershell
 cd <project-root>
-micromamba env update -n minelabeler -f environment.yml --prune
-micromamba activate minelabeler
+conda env update -n minelabeler -f environment.yml --prune
+conda activate minelabeler
 ```
 
-If you use `mamba` instead of `micromamba`, the same commands work with `mamba`.
+If you use `mamba` instead of `conda`, the same commands work with `conda`.
 
 ```powershell
 mamba env create -f environment.yml
@@ -56,7 +55,9 @@ sudo apt install -y \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
   libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xfixes0 \
   libdbus-1-3 libnss3 libxcomposite1 libxdamage1 libxrandr2 \
-  libgbm1 fonts-dejavu-core
+  libgbm1 fonts-dejavu-core libxcb-xkb1 libnspr4 libnss3 
+
+export QT_QPA_PLATFORM=xcb
 ```
 
 If audio-related WebEngine errors appear on Ubuntu/Debian, also install the distribution's ALSA runtime package, usually `libasound2` or `libasound2t64`.
@@ -76,7 +77,6 @@ For the most reliable startup, place the ICMM dataset in the project `data/` dir
 Supported local files:
 
 ```text
-data/global-mining-dataset.xlsx
 data/global-mining-dataset.csv
 ```
 
@@ -105,7 +105,7 @@ Scene folders are discovered when they contain a `.tif` or `.tiff`, or when the 
 
 ```powershell
 cd <project-root>
-micromamba activate minelabeler
+conda activate minelabeler
 python .\main.py
 ```
 
@@ -118,7 +118,7 @@ Each matrix bin is reviewed as a 3x3 group of image patches. Mine component cate
 - `0`: component is not identified in the current bin
 - `1`: component is identified at least once in the current bin
 
-Default values are `0`, so if a component is absent, you can move through the list without changing it. Count is not recorded; only presence or absence is recorded.
+Default values are `0`, so **if a component is absent, you can move through the list without changing it**. Only presence or absence is recorded.
 
 Recommended workflow:
 
@@ -130,6 +130,29 @@ Recommended workflow:
 6. Complete the bin and continue to the next one.
 
 The green completion state means the bin has been explicitly reviewed and has `eval_end` recorded. Opening a bin alone should not mark it complete.
+
+### Component Classes
+
+The app shows the current field guide labels in the UI, while the CSV keeps stable historical column names for compatibility.
+
+```text
+UI label              Stored CSV field
+Waste Heap            spoil_heap
+Open Pit              open_pit
+Processing Building   processing_building
+Related Building      related_building
+Tailings Pond         tailings_pond
+Artificial Pond       rectangular_pond
+```
+
+Component guide notes:
+
+- `Waste Heap`: bare waste rock accumulation near open-pit mining; look for terraced design, flat-topped structures, disorganized pile patterns, and small adjacent piles.
+- `Open Pit`: exposed excavation face with step-terrace geometry; do not count pits that are completely or mostly filled with water.
+- `Processing Building`: large industrial mining structure, often with elevated conveyors or circular treatment pools; confirm it is mine-related rather than unrelated industrial infrastructure.
+- `Related Building`: administrative or support structure inside the mine operational perimeter; exclude residential buildings and power plants.
+- `Tailings Pond`: discoloured impoundment near the processing area; it may range from mostly dry to very liquid.
+- `Artificial Pond`: engineered industrial water body near processing buildings, usually small, sharp-edged, and murky; do not count distant irrigation, livestock, or decorative ponds unrelated to mining.
 
 ## Keyboard Shortcuts
 
@@ -193,12 +216,12 @@ Spatial and source-image fields:
 
 Annotation fields:
 
-- `spoil_heap`
-- `processing_building`
-- `related_building`
-- `tailings_pond`
-- `rectangular_pond`
-- `open_pit`
+- `spoil_heap`: shown in the UI as `Waste Heap`
+- `processing_building`: shown in the UI as `Processing Building`
+- `related_building`: shown in the UI as `Related Building`
+- `tailings_pond`: shown in the UI as `Tailings Pond`
+- `rectangular_pond`: shown in the UI as `Artificial Pond`
+- `open_pit`: shown in the UI as `Open Pit`
 - `quality_flag`
 
 Component and quality fields are stored as `0` or `1`. `quality_flag` is separate from the component labels and marks bins with broken imagery, missing tiles, or imagery that cannot be confidently interpreted.
