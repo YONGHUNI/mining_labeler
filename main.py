@@ -818,6 +818,159 @@ class DirectoryScannerThread(QThread):
 # =========================================================================
 # CORE LOGIC: NATIVE MATRIX BINNING WITH SCENE-WIDE ATTRIBUTE CALCULATIONS
 # =========================================================================
+def _read_jgw_transform(jgw_path: str) -> dict:
+    with open(jgw_path, 'r') as jf:
+        lines = [float(l.strip()) for l in jf.readlines()]
+    x_scale, _, _, y_scale, top_left_x, top_left_y = lines[:6]
+    return {
+        "x_scale": x_scale,
+        "y_scale": y_scale,
+        "top_left_x": top_left_x,
+        "top_left_y": top_left_y,
+        "width_deg": 256 * abs(x_scale),
+        "height_deg": 256 * abs(y_scale),
+    }
+
+
+def _scene_jpg_tiles(scene_key: str) -> list:
+    tiles = []
+    for root, _, files in os.walk(scene_key):
+        norm_root = normalize_spatial_path(root)
+        lower_files = {name.lower(): name for name in files}
+        for f in files:
+            if not f.lower().endswith('.jpg'):
+                continue
+            stem = os.path.splitext(f)[0]
+            jgw_name = stem + '.jgw'
+            actual_jgw_name = lower_files.get(jgw_name.lower())
+            if not actual_jgw_name:
+                continue
+            match = re.search(r'_(\d+)_(\d+)_(\d+)$', stem)
+            tile = {
+                "jpg_path": normalize_spatial_path(os.path.join(norm_root, f)),
+                "jgw_path": normalize_spatial_path(os.path.join(norm_root, actual_jgw_name)),
+                "x": None,
+                "y": None,
+                "z": None,
+            }
+            if match:
+                tile["x"] = int(match.group(1))
+                tile["y"] = int(match.group(2))
+                tile["z"] = int(match.group(3))
+            tiles.append(tile)
+    return tiles
+
+
+def _patch_from_transform(jpg_path: str, transform: dict, top_left_x: float, top_left_y: float) -> dict:
+    min_x = top_left_x
+    max_y = top_left_y
+    max_x = min_x + transform["width_deg"]
+    min_y = max_y - transform["height_deg"]
+    return {
+        "jpg_path": jpg_path,
+        "min_x": min_x, "max_x": max_x,
+        "min_y": min_y, "max_y": max_y,
+        "bounds": [[min_y, min_x], [max_y, max_x]],
+        "width_deg": transform["width_deg"],
+        "height_deg": transform["height_deg"]
+    }
+
+
+def _compile_patches_from_jgw_tiles(tiles: list) -> list:
+    patches_info = []
+    for tile in tiles:
+        transform = _read_jgw_transform(tile["jgw_path"])
+        patches_info.append(_patch_from_transform(
+            tile["jpg_path"],
+            transform,
+            transform["top_left_x"],
+            transform["top_left_y"],
+        ))
+    return patches_info
+
+
+def _build_tile_index_models(tiles: list) -> dict:
+    if not tiles or any(tile["x"] is None or tile["y"] is None or tile["z"] is None for tile in tiles):
+        return {}
+    by_zoom = {}
+    for tile in tiles:
+        by_zoom.setdefault(tile["z"], []).append(tile)
+
+    models = {}
+    for zoom, zoom_tiles in by_zoom.items():
+        top_left_tile = min(zoom_tiles, key=lambda tile: (tile["x"], -tile["y"]))
+        bottom_right_tile = max(zoom_tiles, key=lambda tile: (tile["x"], -tile["y"]))
+        top_left_transform = _read_jgw_transform(top_left_tile["jgw_path"])
+        bottom_right_transform = _read_jgw_transform(bottom_right_tile["jgw_path"])
+
+        step_x = 256 * top_left_transform["x_scale"]
+        if bottom_right_tile["x"] != top_left_tile["x"]:
+            step_x = (
+                bottom_right_transform["top_left_x"] - top_left_transform["top_left_x"]
+            ) / (bottom_right_tile["x"] - top_left_tile["x"])
+        else:
+            for tile in zoom_tiles:
+                if tile["x"] == top_left_tile["x"]:
+                    continue
+                ref_transform = _read_jgw_transform(tile["jgw_path"])
+                step_x = (
+                    ref_transform["top_left_x"] - top_left_transform["top_left_x"]
+                ) / (tile["x"] - top_left_tile["x"])
+                break
+
+        step_y = top_left_transform["height_deg"]
+        if bottom_right_tile["y"] != top_left_tile["y"]:
+            step_y = (
+                bottom_right_transform["top_left_y"] - top_left_transform["top_left_y"]
+            ) / (bottom_right_tile["y"] - top_left_tile["y"])
+        else:
+            for tile in zoom_tiles:
+                if tile["y"] == top_left_tile["y"]:
+                    continue
+                ref_transform = _read_jgw_transform(tile["jgw_path"])
+                step_y = (
+                    ref_transform["top_left_y"] - top_left_transform["top_left_y"]
+                ) / (tile["y"] - top_left_tile["y"])
+                break
+
+        if abs(bottom_right_transform["width_deg"] - top_left_transform["width_deg"]) > 1e-12:
+            return {}
+        if abs(bottom_right_transform["height_deg"] - top_left_transform["height_deg"]) > 1e-12:
+            return {}
+
+        models[zoom] = {
+            "anchor_x": top_left_tile["x"],
+            "anchor_y": top_left_tile["y"],
+            "anchor_top_left_x": top_left_transform["top_left_x"],
+            "anchor_top_left_y": top_left_transform["top_left_y"],
+            "step_x": step_x,
+            "step_y": step_y,
+            "width_deg": top_left_transform["width_deg"],
+            "height_deg": top_left_transform["height_deg"],
+        }
+    return models
+
+
+def _predict_indexed_tile_patch(tile: dict, model: dict) -> dict:
+    transform = {
+        "width_deg": model["width_deg"],
+        "height_deg": model["height_deg"],
+    }
+    top_left_x = model["anchor_top_left_x"] + (tile["x"] - model["anchor_x"]) * model["step_x"]
+    top_left_y = model["anchor_top_left_y"] + (tile["y"] - model["anchor_y"]) * model["step_y"]
+    return _patch_from_transform(tile["jpg_path"], transform, top_left_x, top_left_y)
+
+
+def _compile_patches_from_indexed_tiles(tiles: list) -> list:
+    try:
+        models = _build_tile_index_models(tiles)
+        if not models:
+            return []
+        return [_predict_indexed_tile_patch(tile, models[tile["z"]]) for tile in tiles]
+    except Exception:
+        return []
+
+
 def _compile_scene_grids(scene_key: str, scene_data: dict, icmm_df: pd.DataFrame, current_folder: str, data_manager: TaxonomyDataManager) -> list:
     """
     Compiles 256x256 image patches into native NxN matrices based on relative spatial indexing.
@@ -832,46 +985,18 @@ def _compile_scene_grids(scene_key: str, scene_data: dict, icmm_df: pd.DataFrame
     iso3_code = match.group(1).upper() if match else ""
     target_mineral = {"C": "Coal", "G": "Gold", "I": "Iron"}.get(match.group(2).upper(), None) if match else None
 
-    patches_info = []
-    scene_min_x, scene_max_x = float('inf'), float('-inf')
-    scene_min_y, scene_max_y = float('inf'), float('-inf')
-
-    for root, _, files in os.walk(scene_key):
-        norm_root = normalize_spatial_path(root)
-        for f in files:
-            if f.lower().endswith('.jpg'):
-                jpg_path = normalize_spatial_path(os.path.join(norm_root, f))
-                jgw_path = os.path.splitext(jpg_path)[0] + '.jgw'
-                
-                if os.path.exists(jgw_path):
-                    with open(jgw_path, 'r') as jf:
-                        lines = [float(l.strip()) for l in jf.readlines()]
-                    x_scale, _, _, y_scale, top_left_x, top_left_y = lines
-                    
-                    patch_width_deg = 256 * abs(x_scale)
-                    patch_height_deg = 256 * abs(y_scale)
-                    
-                    min_x = top_left_x
-                    max_y = top_left_y
-                    max_x = min_x + patch_width_deg
-                    min_y = max_y - patch_height_deg 
-                    
-                    patches_info.append({
-                        "jpg_path": jpg_path,
-                        "min_x": min_x, "max_x": max_x,
-                        "min_y": min_y, "max_y": max_y,
-                        "bounds": [[min_y, min_x], [max_y, max_x]],
-                        "width_deg": patch_width_deg,
-                        "height_deg": patch_height_deg
-                    })
-                    
-                    scene_min_x = min(scene_min_x, min_x)
-                    scene_max_x = max(scene_max_x, max_x)
-                    scene_min_y = min(scene_min_y, min_y)
-                    scene_max_y = max(scene_max_y, max_y)
+    tiles = _scene_jpg_tiles(scene_key)
+    patches_info = _compile_patches_from_indexed_tiles(tiles)
+    if not patches_info:
+        patches_info = _compile_patches_from_jgw_tiles(tiles)
 
     if not patches_info:
         return []
+
+    scene_min_x = min(p["min_x"] for p in patches_info)
+    scene_max_x = max(p["max_x"] for p in patches_info)
+    scene_min_y = min(p["min_y"] for p in patches_info)
+    scene_max_y = max(p["max_y"] for p in patches_info)
 
     scene_mine_point_count = 0
     if not icmm_df.empty and target_mineral:

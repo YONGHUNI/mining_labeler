@@ -101,6 +101,8 @@ data/figs/<component-name>/*.jpg
 
 Scene folders are discovered when they contain a `.tif` or `.tiff`, or when the folder name matches IDs such as `USA_C_4`, `CHN_I_9`, or `AUS_G_25` and contains georeferenced `.jpg` tiles. JPG tiles need matching `.jgw` world files for spatial binning.
 
+For faster scene loading, JPG tile filenames should keep the tile index pattern used by the sampler, for example `ges_<x>_<y>_<zoom>.jpg`. When that pattern is available, the app reads the top-left and bottom-right `.jgw` files to reconstruct the remaining patch bounds instead of reading every `.jgw` file. If a patch set does not follow this pattern, the app falls back to reading all `.jgw` files so non-standard scenes remain compatible.
+
 ## Run
 
 ```powershell
