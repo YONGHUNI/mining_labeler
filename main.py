@@ -1444,6 +1444,7 @@ class MiningTaxonomyUI(QMainWindow):
         self.count_redo_stack = []
         self.active_component_idx = 0
         self._last_quality_flag = 0
+        self._dirty_gpkg_scene_keys = set()
         self.shortcut_bindings = self._load_keybindings()
         self.shortcut_objects = {}
         
@@ -1795,7 +1796,7 @@ class MiningTaxonomyUI(QMainWindow):
             payload[k] = self._checkbox_state(k)
         payload[QUALITY_FLAG_KEY] = self._quality_flag_value()
         self.data_manager.save_or_update_grid(payload, mark_started=mark_started, mark_completed=mark_completed)
-        self._export_scene_gpkg(self.active_scene_key)
+        self._mark_scene_gpkg_dirty(self.active_scene_key)
         self._update_grid_completion_state()
 
     def _label_for_binary_key(self, key: str) -> str:
@@ -2484,6 +2485,7 @@ class MiningTaxonomyUI(QMainWindow):
         return False
 
     def _reset_active_view(self):
+        self._flush_dirty_gpkg_exports()
         self.scene_database = {}
         self.active_scene_key = None
         self.active_grid_idx = -1
@@ -2492,6 +2494,7 @@ class MiningTaxonomyUI(QMainWindow):
         self.active_component_idx = 0
         self.count_undo_stack.clear()
         self.count_redo_stack.clear()
+        self._dirty_gpkg_scene_keys.clear()
         self.prefetch_thread.queue.clear()
         self.file_list_widget.clear()
         self.grid_list_widget.clear()
@@ -2531,6 +2534,7 @@ class MiningTaxonomyUI(QMainWindow):
             return
 
         removed_rows = self.data_manager.purge_scene_records(scene_uid, tif_path) if self.data_manager else 0
+        self._dirty_gpkg_scene_keys.discard(self.active_scene_key)
         deleted_gpkg = 0
         try:
             deleted_gpkg = 1 if self._delete_scene_output_gpkg(scene_data) else 0
@@ -2571,6 +2575,7 @@ class MiningTaxonomyUI(QMainWindow):
         deleted_gpkg, gpkg_failed = self._delete_output_gpkg_files()
         failed = csv_failed + gpkg_failed
         self.data_manager = TaxonomyDataManager(self.current_folder)
+        self._dirty_gpkg_scene_keys.clear()
         self._reset_active_view()
         self.open_working_directory(self.current_folder)
 
@@ -2949,6 +2954,28 @@ class MiningTaxonomyUI(QMainWindow):
         scene_id = extract_output_identifier(scene_data.get("scene_name", "scene"))
         return normalize_spatial_path(os.path.join(get_gpkg_output_dir(), f"{scene_id}_matrix.gpkg"))
 
+    def _mark_scene_gpkg_dirty(self, scene_key: str):
+        norm_scene_key = normalize_spatial_path(scene_key)
+        if norm_scene_key and norm_scene_key in self.scene_database:
+            self._dirty_gpkg_scene_keys.add(norm_scene_key)
+
+    def _flush_dirty_gpkg_exports(self, scene_keys=None):
+        if not self.data_manager or not getattr(self, "_dirty_gpkg_scene_keys", None):
+            return
+        targets = [normalize_spatial_path(k) for k in (scene_keys or list(self._dirty_gpkg_scene_keys))]
+        for scene_key in targets:
+            if scene_key not in self._dirty_gpkg_scene_keys:
+                continue
+            scene_data = self.scene_database.get(scene_key)
+            if not scene_data or not scene_data.get("grid_cells"):
+                self._dirty_gpkg_scene_keys.discard(scene_key)
+                continue
+            try:
+                self._export_scene_gpkg(scene_key)
+                self._dirty_gpkg_scene_keys.discard(scene_key)
+            except Exception as exc:
+                print(f"Could not refresh deferred GPKG for {scene_key}: {exc}")
+
     def _export_scene_gpkg(self, scene_key: str):
         if not self.data_manager:
             return
@@ -3031,6 +3058,7 @@ class MiningTaxonomyUI(QMainWindow):
                 self._export_scene_gpkg(scene_key)
 
     def open_working_directory(self, folder: str):
+        self._flush_dirty_gpkg_exports()
         self._workspace_load_id += 1
         load_id = self._workspace_load_id
         self.current_folder = normalize_spatial_path(folder)
@@ -3194,6 +3222,8 @@ class MiningTaxonomyUI(QMainWindow):
     def on_scene_changed(self, current_item: QListWidgetItem):
         if not current_item: return
         scene_key = normalize_spatial_path(current_item.data(Qt.ItemDataRole.UserRole))
+        if self.active_scene_key and normalize_spatial_path(self.active_scene_key) != scene_key:
+            self._flush_dirty_gpkg_exports([self.active_scene_key])
         scene_data = self.scene_database[scene_key]
         self.active_scene_key = scene_key
         
@@ -3214,14 +3244,13 @@ class MiningTaxonomyUI(QMainWindow):
         self.scene_database[normalize_spatial_path(scene_key)]['grid_cells'] = grids
         self.file_list_widget.setEnabled(True)
         self._fill_scene_jpg_metadata(scene_key)
-        self._export_scene_gpkg(scene_key)
+        self._mark_scene_gpkg_dirty(scene_key)
         self._render_scene_grids(scene_key)
         self._apply_pending_grid_selection(scene_key)
 
     def _on_prefetch_finished(self, scene_key: str, grids: list):
         self.scene_database[normalize_spatial_path(scene_key)]['grid_cells'] = grids
         self._fill_scene_jpg_metadata(scene_key)
-        self._export_scene_gpkg(scene_key)
 
     def _render_scene_grids(self, scene_key: str):
         scene_data = self.scene_database[normalize_spatial_path(scene_key)]
@@ -3467,6 +3496,10 @@ class MiningTaxonomyUI(QMainWindow):
             self.next_component_or_bin()
 
         super().keyPressEvent(event)
+
+    def closeEvent(self, event):
+        self._flush_dirty_gpkg_exports()
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":

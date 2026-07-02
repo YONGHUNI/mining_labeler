@@ -194,7 +194,7 @@ labeling_output/imported/
 labeling_output/nk_mining_taxonomy.backup_<timestamp>.csv
 ```
 
-The main CSV stores one row per evaluated matrix bin. GeoPackage outputs are written per scene under `labeling_output/gpkg/`. External CSVs merged through the app are archived under `labeling_output/imported/`, and merge backups use the `nk_mining_taxonomy.backup_<timestamp>.csv` pattern.
+The main CSV stores one row per evaluated matrix bin and is updated immediately during labeling. GeoPackage outputs are written per scene under `labeling_output/gpkg/` and refreshed when leaving a scene, closing the app, or explicitly refreshing outputs after imports. External CSVs merged through the app are archived under `labeling_output/imported/`, and merge backups use the `nk_mining_taxonomy.backup_<timestamp>.csv` pattern.
 
 ### Main CSV Schema
 
